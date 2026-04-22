@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import pickle
+from sklearn.metrics.pairwise import cosine_similarity
 
 # ── Page config ──────────────────────────────────────────
 st.set_page_config(
@@ -12,10 +12,18 @@ st.set_page_config(
 # ── Load data ─────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    movies     = pd.read_csv('data/final/gold_movies.csv')
-    with open('data/final/similarity.pkl', 'rb') as f:
-        similarity = pickle.load(f)
-    return movies, similarity
+    movies       = pd.read_csv('data/final/gold_movies.csv')
+    genre_matrix = pd.read_csv('data/final/genre_matrix.csv')
+
+    # Generate similarity matrix on the fly (cached so runs only once)
+    genre_cols   = genre_matrix.drop(columns=['movieId', 'clean_title'])
+    similarity   = cosine_similarity(genre_cols)
+    similarity_df = pd.DataFrame(
+        similarity,
+        index=genre_matrix['clean_title'],
+        columns=genre_matrix['clean_title']
+    )
+    return movies, similarity_df
 
 movies, similarity_df = load_data()
 
