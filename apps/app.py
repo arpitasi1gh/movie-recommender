@@ -1,41 +1,44 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ── Page config ──────────────────────────────────────────
 st.set_page_config(
     page_title="🎬 Movie Recommender",
     page_icon="🎬",
     layout="wide"
 )
 
-# ── Load data ─────────────────────────────────────────────
 @st.cache_data
 def load_data():
     movies       = pd.read_csv('data/final/gold_movies.csv')
     genre_matrix = pd.read_csv('data/final/genre_matrix.csv')
+    return movies, genre_matrix
 
-    # Generate similarity matrix on the fly (cached so runs only once)
-    genre_cols   = genre_matrix.drop(columns=['movieId', 'clean_title'])
-    similarity   = cosine_similarity(genre_cols)
-    similarity_df = pd.DataFrame(
-        similarity,
-        index=genre_matrix['clean_title'],
-        columns=genre_matrix['clean_title']
-    )
-    return movies, similarity_df
+movies, genre_matrix = load_data()
 
-movies, similarity_df = load_data()
-
-# ── Recommendation function ───────────────────────────────
+# ── Recommendation function (memory efficient) ────────────
 def recommend_movies(movie_title, top_n=10):
-    if movie_title not in similarity_df.index:
+    if movie_title not in genre_matrix['clean_title'].values:
         return None
-    scores     = similarity_df[movie_title].sort_values(ascending=False)
-    scores     = scores.drop(movie_title, errors='ignore')
-    top_titles = scores.head(top_n).index.tolist()
-    results    = movies[movies['clean_title'].isin(top_titles)].copy()
-    results    = results.sort_values('avg_rating', ascending=False)
+
+    genre_cols  = genre_matrix.drop(columns=['movieId', 'clean_title'])
+    movie_idx   = genre_matrix[genre_matrix['clean_title'] == movie_title].index[0]
+    movie_vec   = genre_cols.iloc[movie_idx].values.reshape(1, -1)
+
+    # Compute similarity ONLY for selected movie (not full matrix)
+    similarity_scores = cosine_similarity(movie_vec, genre_cols)[0]
+
+    scores_df = pd.DataFrame({
+        'clean_title': genre_matrix['clean_title'],
+        'score': similarity_scores
+    })
+
+    scores_df = scores_df[scores_df['clean_title'] != movie_title]
+    top_titles = scores_df.sort_values('score', ascending=False).head(top_n)['clean_title'].tolist()
+
+    results = movies[movies['clean_title'].isin(top_titles)].copy()
+    results = results.sort_values('avg_rating', ascending=False)
     return results
 
 # ── Header ────────────────────────────────────────────────
@@ -59,12 +62,13 @@ with col1:
     selected   = st.selectbox("🔍 Search for a movie you like:", movie_list)
 
 with col2:
-    st.metric("Your Movie's Rating",
-              f"{movies[movies['clean_title'] == selected]['avg_rating'].values[0]:.2f} ⭐")
+    rating_val = movies[movies['clean_title'] == selected]['avg_rating'].values
+    rating     = rating_val[0] if len(rating_val) > 0 else 0.0
+    st.metric("Your Movie's Rating", f"{rating:.2f} ⭐")
 
 st.divider()
 
-# ── Show recommendations ──────────────────────────────────
+# ── Recommendations ───────────────────────────────────────
 if st.button("🚀 Get Recommendations", use_container_width=True):
     results = recommend_movies(selected, top_n)
 
@@ -87,9 +91,8 @@ if st.button("🚀 Get Recommendations", use_container_width=True):
                 st.caption(f"📅 {year}")
             st.divider()
 
-# ── Charts section ────────────────────────────────────────
+# ── Charts ────────────────────────────────────────────────
 st.subheader("📊 Dataset Insights")
-
 col1, col2 = st.columns(2)
 
 with col1:
