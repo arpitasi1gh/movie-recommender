@@ -8,7 +8,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-ML%20Model-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
 
-**[🚀 Live Demo →](https://movie-recommender-by-arpitasi1gh.streamlit.app/)**
+**[🚀 Live Demo → https://movie-recommender-by-arpitasi1gh.streamlit.app/](https://movie-recommender-by-arpitasi1gh.streamlit.app/)**
 
 </div>
 
