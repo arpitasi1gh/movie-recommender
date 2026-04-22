@@ -12,8 +12,8 @@ st.set_page_config(
 # ── Load data ─────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    movies     = pd.read_csv('../data/final/gold_movies.csv')
-    with open('../data/final/similarity.pkl', 'rb') as f:
+    movies     = pd.read_csv('data/final/gold_movies.csv')
+    with open('data/final/similarity.pkl', 'rb') as f:
         similarity = pickle.load(f)
     return movies, similarity
 
